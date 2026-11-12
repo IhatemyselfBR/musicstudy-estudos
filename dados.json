@@ -1,11 +1,8 @@
 {
   "Campo Harmônico": [],
   "Escalas": [],
-  "Acordes": [
-    {
-      "name": "Twste2",
-      "description": "",
-      "image": "images/0ddc964fcfd8a8ed77a3.jpg"
-    }
+  "Acordes": [],
+  "_excluidos": [
+    "[\"Twste2\",\"\"]"
   ]
 }
