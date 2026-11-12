@@ -107,6 +107,10 @@ function getItems(){
    merged.push(item);
   }
  }
+ if(category==="Acordes"){
+  const deleted=JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]");
+  return merged.filter(x=>!deleted.includes(signature(x)));
+ }
  return merged;
 }
 async function loadShared(){
@@ -149,7 +153,17 @@ function render(){
   const info=document.createElement("div");info.className="card-info";
   const title=document.createElement("h3");title.textContent=item.name||"Sem nome";
   const desc=document.createElement("p");desc.textContent=item.description||"";
-  info.append(title,desc);card.appendChild(info);cards.appendChild(card);
+  info.append(title,desc);card.appendChild(info);
+
+  if(isApp && category==="Acordes"){
+   const del=document.createElement("button");
+   del.textContent="Excluir";
+   del.style.cssText="width:calc(100% - 24px);margin:0 12px 12px;background:#7f2938;color:white;padding:10px";
+   del.onclick=()=>deleteItem(item);
+   card.appendChild(del);
+  }
+
+  cards.appendChild(card);
  });
 }
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
@@ -160,6 +174,25 @@ document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>
  render();
 }));
 document.getElementById("search").addEventListener("input",render);
+
+function signature(item){
+ return JSON.stringify([item.name||"",item.description||""]);
+}
+
+function deleteItem(item){
+ if(!confirm('Tem certeza que deseja excluir "'+(item.name||"este acorde")+'"?'))return;
+
+ const sig=signature(item);
+ const local=getLocal("Acordes").filter(x=>signature(x)!==sig);
+ localStorage.setItem(key("Acordes"),JSON.stringify(local));
+
+ const deleted=JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]");
+ if(!deleted.includes(sig))deleted.push(sig);
+ localStorage.setItem("musicstudy_deleted_Acordes",JSON.stringify(deleted));
+
+ render();
+ alert("Acorde removido. Exporte e publique a biblioteca para atualizar o site.");
+}
 
 function openModal(){
  selectedImage=null;
@@ -177,6 +210,11 @@ function saveItem(){
   const items=getLocal(category);
   items.push({name,description,image:selectedImage});
   localStorage.setItem(key(category),JSON.stringify(items));
+  if(category==="Acordes"){
+   const deleted=JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]");
+   const sig=signature({name,description});
+   localStorage.setItem("musicstudy_deleted_Acordes",JSON.stringify(deleted.filter(x=>x!==sig)));
+  }
   closeModal();render();
  }catch(e){alert("Não foi possível salvar. Tente uma imagem menor.")}
 }
@@ -188,6 +226,7 @@ window.onImageSelected=function(data){
 function exportLibrary(){
  const data={};
  for(const c of ["Campo Harmônico","Escalas","Acordes"])data[c]=getLocal(c);
+ data._excluidos=JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]");
  Android.exportData(JSON.stringify(data));
 }
 render();
