@@ -82,6 +82,7 @@ h1{font-size:25px;margin:0 0 7px}
 let category="Campo Harmônico";
 let selectedImage=null;
 let sharedData={"Campo Harmônico":[],"Escalas":[],"Acordes":[]};
+let sharedDeleted=[];
 const isApp=!!window.Android;
 
 if(!isApp){
@@ -98,19 +99,24 @@ function getLocal(c){
  catch(e){return []}
 }
 function getItems(){
- if(!isApp) return sharedData[category]||[];
- const local = getLocal(category);
- const shared = sharedData[category]||[];
- const merged = [...shared];
+ const local=isApp?getLocal(category):[];
+ const shared=sharedData[category]||[];
+ const merged=[...shared];
+
  for(const item of local){
   if(!merged.some(x=>x.name===item.name && x.description===item.description)){
    merged.push(item);
   }
  }
+
  if(category==="Acordes"){
-  const deleted=JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]");
-  return merged.filter(x=>!deleted.includes(signature(x)));
+  const localDeleted=isApp
+   ? JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]")
+   : [];
+  const deleted=new Set([...sharedDeleted,...localDeleted]);
+  return merged.filter(x=>!deleted.has(signature(x)));
  }
+
  return merged;
 }
 async function loadShared(){
@@ -120,6 +126,7 @@ async function loadShared(){
   const d=await r.json();
   for(const c of ["Campo Harmônico","Escalas","Acordes"])
    sharedData[c]=Array.isArray(d[c])?d[c]:[];
+  sharedDeleted=Array.isArray(d._excluidos)?d._excluidos:[];
   document.getElementById("status").textContent="Biblioteca compartilhada atualizada.";
  }catch(e){
   document.getElementById("status").textContent="Não foi possível carregar a biblioteca compartilhada.";
@@ -226,7 +233,10 @@ window.onImageSelected=function(data){
 function exportLibrary(){
  const data={};
  for(const c of ["Campo Harmônico","Escalas","Acordes"])data[c]=getLocal(c);
- data._excluidos=JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]");
+ data._excluidos=[...new Set([
+  ...sharedDeleted,
+  ...JSON.parse(localStorage.getItem("musicstudy_deleted_Acordes")||"[]")
+ ])];
  Android.exportData(JSON.stringify(data));
 }
 render();
