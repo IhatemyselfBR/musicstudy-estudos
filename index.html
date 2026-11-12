@@ -28,7 +28,9 @@ h1{font-size:25px;margin:0 0 7px}
 .card p{font-size:12px;color:var(--muted);margin:0;overflow-wrap:anywhere}
 .add{width:100%;margin-top:20px;background:var(--accent);color:#171321;font-weight:bold;padding:16px}
 .empty{color:var(--muted);text-align:center;padding:35px 10px;grid-column:1/-1}
-.status{font-size:12px;color:var(--muted);margin:8px 0 14px}
+.status{font-size:12px;color:var(--muted);margin:8px 0 6px}
+.refresh-row{display:flex;justify-content:flex-end;margin:0 0 14px}
+.refresh-button{padding:5px 9px;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);background:transparent}
 .modal{display:none;position:fixed;inset:0;background:#000b;align-items:center;justify-content:center;padding:18px}
 .modal-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;width:100%;max-width:430px}
 .modal-box h2{margin-top:0}
@@ -56,6 +58,7 @@ h1{font-size:25px;margin:0 0 7px}
 </nav>
 <input id="search" class="search" placeholder="⌕  Pesquisar conteúdo...">
 <div class="status" id="status">Carregando biblioteca...</div>
+<div class="refresh-row"><button class="refresh-button" onclick="loadShared()">↻ Atualizar</button></div>
 <div class="section-title" id="sectionTitle">Campo Harmônico</div>
 <div class="cards" id="cards"></div>
 <button class="add" id="addButton" onclick="openModal()">＋ Adicionar conteúdo</button>
@@ -84,11 +87,10 @@ const isApp=!!window.Android;
 if(!isApp){
  document.getElementById("addButton").style.display="none";
  document.getElementById("backButton").style.display="none";
- loadShared();
 }else{
  document.getElementById("exportButton").style.display="block";
- document.getElementById("status").textContent="Biblioteca local do aplicativo.";
 }
+loadShared();
 
 function key(c){return "musicstudy_site_"+c}
 function getLocal(c){
@@ -96,11 +98,20 @@ function getLocal(c){
  catch(e){return []}
 }
 function getItems(){
- return isApp ? getLocal(category) : (sharedData[category]||[]);
+ if(!isApp) return sharedData[category]||[];
+ const local = getLocal(category);
+ const shared = sharedData[category]||[];
+ const merged = [...shared];
+ for(const item of local){
+  if(!merged.some(x=>x.name===item.name && x.description===item.description)){
+   merged.push(item);
+  }
+ }
+ return merged;
 }
 async function loadShared(){
  try{
-  const r=await fetch("./dados.json?v="+Date.now(),{cache:"no-store"});
+  const r=await fetch("https://ihatemyselfbr.github.io/musicstudy-estudos/dados.json?v="+Date.now(),{cache:"no-store"});
   if(!r.ok)throw new Error("Biblioteca ainda não publicada.");
   const d=await r.json();
   for(const c of ["Campo Harmônico","Escalas","Acordes"])
@@ -128,7 +139,8 @@ function render(){
   const card=document.createElement("article");card.className="card";
   if(item.image){
    const img=document.createElement("img");
-   img.src=item.image;img.alt=item.name||"Imagem de estudo";
+   img.src=/^(data:|https?:\/\/)/i.test(item.image) ? item.image : "https://ihatemyselfbr.github.io/musicstudy-estudos/"+item.image.replace(/^\//,"");
+   img.alt=item.name||"Imagem de estudo";
    card.appendChild(img);
   }else{
    const ph=document.createElement("div");ph.className="placeholder";
